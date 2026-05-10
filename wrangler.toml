@@ -1,0 +1,4 @@
+name = "andrewk.124710@gmail.com"
+main = "main.ipynb"
+compatibility_date = "2026-05-09" 
+compatibility_flags = ["python_workers"]
