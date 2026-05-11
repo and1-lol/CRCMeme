@@ -1,0 +1,8 @@
+name = "craftcoin-backend"
+main = "main.py"
+compatibility_date = "2024-05-10"
+compatibility_flags = ["python_workers"]
+
+[[kv_namespaces]]
+binding = "CRAFTCOIN_DATA"
+id = "e846c26a67fd405e89a78b288728421a"
