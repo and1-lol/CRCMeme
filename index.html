@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Craftcoin Portal</title>
+</head>
 <body>
   <h2>Craftcoin Web Portal</h2>
   <input id="user" placeholder="Username"><br>
@@ -14,18 +17,32 @@
   <p id="output"></p>
 
   <script>
-    async def doAction(action) {
-      const response = await fetch('https://workers.dev', {
-        method: 'POST',
-        body: JSON.stringify({
-          action: action,
-          username: document.getElementById('user').value,
-          password: document.getElementById('pass').value,
-          recipient: document.getElementById('to').value,
-          amount: document.getElementById('amt').value
-        })
-      });
-      document.getElementById('output').innerText = await response.text();
+    // Changed "async def" to "async function"
+    async function doAction(action) {
+      const output = document.getElementById('output');
+      output.innerText = "Processing...";
+
+      try {
+        // REPLACE THIS URL with your real worker URL
+        const response = await fetch('https://workers.dev', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json' // Crucial for the Python backend
+          },
+          body: JSON.stringify({
+            action: action,
+            username: document.getElementById('user').value,
+            password: document.getElementById('pass').value,
+            recipient: document.getElementById('to').value,
+            amount: document.getElementById('amt').value
+          })
+        });
+
+        const result = await response.text();
+        output.innerText = result;
+      } catch (err) {
+        output.innerText = "Connection Error: " + err.message;
+      }
     }
   </script>
 </body>
