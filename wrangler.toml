@@ -7,3 +7,7 @@ compatibility_flags = ["python_workers"]
 [[kv_namespaces]]
 binding = "CRAFTCOIN_DATA"
 id = "e846c26a67fd405e89a78b288728421a"
+
+[observability.logs]
+enabled = false
+invocation_logs = true
