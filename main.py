@@ -92,3 +92,13 @@ async def on_fetch(request, env):
     except Exception as e:
         # This catches errors if the JSON sent is malformed
         return Response.new(f"Server Error: {str(e)}", status=500)
+
+return Response.new(
+    "Your message here", 
+    headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+    }
+)
+
