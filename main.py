@@ -12,18 +12,24 @@ CORS_HEADERS = {
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
+# DO NOT RENAME THIS - Cloudflare is looking exactly for 'on_fetch'
 async def on_fetch(request, env):
-    # 1. Handle OPTIONS
+    # 1. Handle OPTIONS (CORS)
     if request.method == "OPTIONS":
         return Response.new("", headers=CORS_HEADERS)
 
-    # 2. Handle GET
+    # 2. Handle GET (What the browser does when you visit the link)
     if request.method != "POST":
         return Response.new("Craftcoin Backend is Online.", headers=CORS_HEADERS, status=200)
 
-    storage = env.CRAFTCOIN_DATA
+    # 3. Access Storage
+    try:
+        storage = env.CRAFTCOIN_DATA
+    except Exception:
+        return Response.new("Error: KV Binding 'CRAFTCOIN_DATA' missing.", status=500)
 
     try:
+        # 4. Parse Body
         body_text = await request.text()
         body = json.loads(body_text)
         action = body.get("action")
@@ -32,13 +38,16 @@ async def on_fetch(request, env):
             username = body.get("username", "").lower().strip()
             password = body.get("password", "")
             
+            if not username:
+                return Response.new("Error: Username empty.", headers=CORS_HEADERS, status=400)
+
             exists = await storage.get(f"user:{username}")
             if exists:
                 return Response.new("Error: User exists.", headers=CORS_HEADERS, status=400)
             
             user_data = {
                 "password": hash_password(password),
-                "balance": 0,
+                "balance": 100, # Start with some coins!
                 "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             await storage.put(f"user:{username}", json.dumps(user_data))
