@@ -12,24 +12,20 @@ CORS_HEADERS = {
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
-# DO NOT RENAME THIS - Cloudflare is looking exactly for 'on_fetch'
+# Explicitly named entry point for the Pyodide runtime
 async def on_fetch(request, env):
-    # 1. Handle OPTIONS (CORS)
+    # IMMEDIATE RESPONSE FOR GET (Stops the 1101 Hang)
+    if request.method != "POST" and request.method != "OPTIONS":
+        return Response.new("Craftcoin Backend is Online.", headers=CORS_HEADERS)
+
     if request.method == "OPTIONS":
         return Response.new("", headers=CORS_HEADERS)
 
-    # 2. Handle GET (What the browser does when you visit the link)
-    if request.method != "POST":
-        return Response.new("Craftcoin Backend is Online.", headers=CORS_HEADERS, status=200)
-
-    # 3. Access Storage
     try:
+        # Connect to KV
         storage = env.CRAFTCOIN_DATA
-    except Exception:
-        return Response.new("Error: KV Binding 'CRAFTCOIN_DATA' missing.", status=500)
-
-    try:
-        # 4. Parse Body
+        
+        # Read the body
         body_text = await request.text()
         body = json.loads(body_text)
         action = body.get("action")
@@ -47,7 +43,7 @@ async def on_fetch(request, env):
             
             user_data = {
                 "password": hash_password(password),
-                "balance": 100, # Start with some coins!
+                "balance": 100,
                 "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             await storage.put(f"user:{username}", json.dumps(user_data))
@@ -70,6 +66,7 @@ async def on_fetch(request, env):
             recipient_raw = await storage.get(f"user:{recipient_name}")
             if not recipient_raw:
                 return Response.new("Error: Recipient not found.", headers=CORS_HEADERS, status=404)
+            
             recipient = json.loads(recipient_raw)
 
             if sender["balance"] < amount:
