@@ -6,7 +6,6 @@ import json
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Helper to format headers into a JS-compatible object
 def get_cors_headers():
     h = Headers.new()
     h.set("Access-Control-Allow-Origin", "*")
@@ -17,11 +16,9 @@ def get_cors_headers():
 async def on_fetch(request, env):
     headers = get_cors_headers()
 
-    # Handle Preflight
     if request.method == "OPTIONS":
         return Response.new("", status=204, headers=headers)
 
-    # Handle GET request (serving status or metadata)
     if request.method == "GET":
         return Response.new("Craftcoin Backend is Online.", status=200, headers=headers)
 
@@ -38,7 +35,23 @@ async def on_fetch(request, env):
         body = json.loads(body_text)
         action = body.get("action")
         
-        if action == "create_account":
+        # --- ACTION: GET BALANCE ---
+        if action == "get_balance":
+            username = body.get("username", "").lower().strip()
+            pwd = body.get("password", "")
+            
+            user_raw = await storage.get(f"user:{username}")
+            if not user_raw:
+                return Response.new("Error: User not found.", status=404, headers=headers)
+                
+            user = json.loads(user_raw)
+            if user["password"] != hash_password(pwd):
+                return Response.new("Error: Auth failed.", status=403, headers=headers)
+                
+            return Response.new(f"Balance: {user['balance']} Craftcoins", status=200, headers=headers)
+
+        # --- ACTION: CREATE ACCOUNT ---
+        elif action == "create_account":
             username = body.get("username", "").lower().strip()
             password = body.get("password", "")
             
@@ -57,6 +70,7 @@ async def on_fetch(request, env):
             await storage.put(f"user:{username}", json.dumps(user_data))
             return Response.new(f"Success: {username} created!", status=200, headers=headers)
 
+        # --- ACTION: TRANSFER ---
         elif action == "transfer":
             sender_name = body.get("username", "").lower().strip()
             pwd = body.get("password", "")
