@@ -35,8 +35,36 @@ async def on_fetch(request, env):
         body = json.loads(body_text)
         action = body.get("action")
         
+        # --- ACTION: MINE VIA NUMBER GUESS ---
+        if action == "mine_guess":
+            username = body.get("username", "").lower().strip()
+            pwd = body.get("password", "")
+            guess_str = body.get("guess", "0")
+
+            user_raw = await storage.get(f"user:{username}")
+            if not user_raw:
+                return Response.new("Error: User not found.", status=404, headers=headers)
+                
+            user = json.loads(user_raw)
+            if user["password"] != hash_password(pwd):
+                return Response.new("Error: Auth failed.", status=403, headers=headers)
+
+            try:
+                guess = int(guess_str)
+            except ValueError:
+                return Response.new("Error: Invalid number.", status=400, headers=headers)
+
+            # Rule: If the user's random guess is 35 or under, they win!
+            if 1 <= guess <= 35:
+                mining_reward = 25.0
+                user["balance"] += mining_reward
+                await storage.put(f"user:{username}", json.dumps(user))
+                return Response.new(f"🎉 Winner! Your guess ({guess}) won {mining_reward} Craftcoins! New Balance: {user['balance']}", status=200, headers=headers)
+            else:
+                return Response.new(f"❌ Try Again! Your guess ({guess}) missed the winning range (1-35).", status=200, headers=headers)
+
         # --- ACTION: GET BALANCE ---
-        if action == "get_balance":
+        elif action == "get_balance":
             username = body.get("username", "").lower().strip()
             pwd = body.get("password", "")
             
