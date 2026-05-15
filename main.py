@@ -61,7 +61,7 @@ async def on_fetch(request, env):
                 await storage.put(f"user:{username}", json.dumps(user))
                 return Response.new(f"🎉 Winner! Your guess ({guess}) won {mining_reward} Craftcoins! New Balance: {user['balance']}", status=200, headers=headers)
             else:
-                return Response.new(f"❌ Try Again! Your guess ({guess}) missed the winning range (1-35).", status=200, headers=headers)
+                return Response.new(f"❌ Try Again! Your guess ({guess}) missed the winning range (1%).", status=200, headers=headers)
 
         # --- ACTION: GET BALANCE ---
         elif action == "get_balance":
