@@ -55,7 +55,7 @@ async def on_fetch(request, env):
                 return Response.new("Error: Invalid number.", status=400, headers=headers)
 
             # Rule: If the user's random guess is 35 or under, they win!
-            if 1 <= guess <= 35:
+            if 1 <= guess <= 2:
                 mining_reward = 5.0
                 user["balance"] += mining_reward
                 await storage.put(f"user:{username}", json.dumps(user))
