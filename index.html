@@ -1,24 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Craftcoin Network   (meme)      </title>
-    <title>Created by: ken *Not to be of Value*</title>
+    <title>Craftcoin Portal</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        input, button { margin: 5px 0; padding: 8px; width: 250px; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+        input, button { margin: 5px 0; padding: 8px; width: 100%; box-sizing: border-box; }
         hr { margin: 20px 0; }
-        #mining-status { color: #00875a; font-weight: bold; }
+        #mining-status { color: #00875a; font-weight: bold; margin: 5px 0; }
+        #leaderboard-area { background: #f4f5f7; padding: 15px; border-radius: 5px; margin-top: 15px; }
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #ddd; }
     </style>
 </head>
 <body>
-  <h2>Craftcoin Network (meme)</h2>
+  <h2>Craftcoin Web Portal</h2>
   <input id="user" placeholder="Username"><br>
   <input id="pass" type="password" placeholder="Password"><br>
   <button onclick="doAction('create_account')">Create Account</button>
   <button onclick="doAction('get_balance')">Check Balance</button>
-  <button onclick="startSimpleMining()">⛏️ Mine (Guess Number 1-100)</button>
+  <button onclick="startSimpleMining()">⛏️ Mine (1/100 Win Rate)</button>
   <div id="mining-status"></div>
   
+  <button onclick="fetchLeaderboard()" style="background-color: #0076ff; color: white; margin-top: 10px;">🏆 View Leaderboard</button>
+  <div id="leaderboard-area" style="display:none;">
+    <h3>Top Balances</h3>
+    <div id="leaderboard-list"></div>
+  </div>
+
   <hr>
   <input id="to" placeholder="Recipient"><br>
   <input id="amt" type="number" placeholder="Amount"><br>
@@ -27,7 +34,7 @@
   <p id="output"></p>
 
   <script>
-    const WORKER_URL = 'https://craftcoinmeme.andrewk-124710.workers.dev'; // REPLACE WITH YOUR REAL URL
+    const WORKER_URL = 'https://workers.dev';
 
     async function doAction(action, extraData = {}) {
       const output = document.getElementById('output');
@@ -61,15 +68,43 @@
         return;
       }
 
-      statusDiv.innerText = "Rolling the dice...";
-      
-      // Generate a quick local guess number between 1 and 100
+      statusDiv.innerText = "Rolling a 1-100 dice...";
       const luckyGuess = Math.floor(Math.random() * 100) + 1;
+      statusDiv.innerText = `You rolled: ${luckyGuess}! Submitting to server...`;
       
-      statusDiv.innerText = `You guessed number: ${luckyGuess}! Submitting to server...`;
-      
-      // Send the guess directly to your Cloudflare Worker backend
       await doAction('mine_guess', { guess: luckyGuess.toString() });
+    }
+
+    async function fetchLeaderboard() {
+      const listDiv = document.getElementById('leaderboard-list');
+      const areaDiv = document.getElementById('leaderboard-area');
+      listDiv.innerHTML = "Loading...";
+      areaDiv.style.display = "block";
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_leaderboard' })
+        });
+        const data = await response.json();
+        
+        listDiv.innerHTML = "";
+        if (data.length === 0) {
+          listDiv.innerHTML = "No accounts found.";
+          return;
+        }
+
+        data.forEach((user, index) => {
+          listDiv.innerHTML += `
+            <div class="leaderboard-row">
+              <span><strong>#${index + 1}</strong> ${user.username}</span>
+              <span>${user.balance} CC</span>
+            </div>`;
+        });
+      } catch (err) {
+        listDiv.innerHTML = "Failed to load leaderboard data.";
+      }
     }
   </script>
 </body>
