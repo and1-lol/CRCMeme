@@ -56,7 +56,7 @@ async def on_fetch(request, env):
 
             # Rule: If the user's random guess is 35 or under, they win!
             if 1 <= guess <= 35:
-                mining_reward = 25.0
+                mining_reward = 5.0
                 user["balance"] += mining_reward
                 await storage.put(f"user:{username}", json.dumps(user))
                 return Response.new(f"🎉 Winner! Your guess ({guess}) won {mining_reward} Craftcoins! New Balance: {user['balance']}", status=200, headers=headers)
@@ -92,7 +92,7 @@ async def on_fetch(request, env):
             
             user_data = {
                 "password": hash_password(password),
-                "balance": 100,
+                "balance": 0,
                 "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             await storage.put(f"user:{username}", json.dumps(user_data))
