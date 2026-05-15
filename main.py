@@ -1,4 +1,4 @@
-from js import Response, Object
+from js import Response, Headers
 import datetime
 import hashlib
 import json
@@ -6,20 +6,19 @@ import json
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Fixed: Formats Python dictionaries to JS Objects natively to stop browser connection drops
+# Formats headers using official Cloudflare Python SDK specifications
 def get_cors_headers():
-    d = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
-        "Access-Control-Allow-Headers": "Content-Type"
-    }
-    return Object.fromEntries(Object.entries(json.loads(json.dumps(d))))
+    h = Headers.new()
+    h.set("Access-Control-Allow-Origin", "*")
+    h.set("Access-Control-Allow-Methods", "POST, OPTIONS, GET")
+    h.set("Access-Control-Allow-Headers", "Content-Type")
+    return h
 
 async def on_fetch(request, env):
     headers = get_cors_headers()
     method_str = str(request.method).upper().strip()
 
-    # Handle Preflight Security Options Requests
+    # Preflight browser checks must return 200/204 to allow connection
     if method_str == "OPTIONS":
         return Response.new("", status=204, headers=headers)
 
@@ -57,7 +56,11 @@ async def on_fetch(request, env):
             
             users_found.sort(key=lambda x: x["balance"], reverse=True)
             top_ten = users_found[:10]
-            return Response.new(json.dumps(top_ten), status=200, headers=headers)
+            
+            # Explicitly state JSON format headers
+            json_headers = get_cors_headers()
+            json_headers.set("Content-Type", "application/json")
+            return Response.new(json.dumps(top_ten), status=200, headers=json_headers)
         
         # --- ACTION: MINE VIA NUMBER GUESS ---
         elif action == "mine_guess":
@@ -78,14 +81,13 @@ async def on_fetch(request, env):
             except ValueError:
                 return Response.new("Error: Invalid number.", status=400, headers=headers)
 
-            # Strict 1/100 Rule: Only the number 77 wins!
             if guess == 77:
                 mining_reward = 5.0
                 user["balance"] += mining_reward
                 await storage.put(f"user:{username}", json.dumps(user))
-                return Response.new(f" Successful Mine! Rolled exactly 77! Gained {mining_reward} Craftcoins! Balance: {user['balance']}", status=200, headers=headers)
+                return Response.new(f"🎉 Jackpot! Rolled exactly 77! Gained {mining_reward} Craftcoins! Balance: {user['balance']}", status=200, headers=headers)
             else:
-                return Response.new(f" Missed! Rolled a {guess}. Only a roll of 77 wins at this 1/100 rate.", status=200, headers=headers)
+                return Response.new(f"❌ Missed! Rolled a {guess}. Only a roll of 77 wins at this 1/100 rate.", status=200, headers=headers)
 
         # --- ACTION: GET BALANCE ---
         elif action == "get_balance":
