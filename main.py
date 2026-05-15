@@ -1,4 +1,4 @@
-from js import Response, Object, Headers
+from js import Response, Object
 import datetime
 import hashlib
 import json
@@ -6,17 +6,20 @@ import json
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# Fixed: Formats Python dictionaries to JS Objects natively to stop browser connection drops
 def get_cors_headers():
-    h = Headers.new()
-    h.set("Access-Control-Allow-Origin", "*")
-    h.set("Access-Control-Allow-Methods", "POST, OPTIONS, GET")
-    h.set("Access-Control-Allow-Headers", "Content-Type")
-    return h
+    d = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+        "Access-Control-Allow-Headers": "Content-Type"
+    }
+    return Object.fromEntries(Object.entries(json.loads(json.dumps(d))))
 
 async def on_fetch(request, env):
     headers = get_cors_headers()
     method_str = str(request.method).upper().strip()
 
+    # Handle Preflight Security Options Requests
     if method_str == "OPTIONS":
         return Response.new("", status=204, headers=headers)
 
@@ -38,11 +41,9 @@ async def on_fetch(request, env):
 
         # --- ACTION: GET LEADERBOARD ---
         if action == "get_leaderboard":
-            # List all user keys out of Cloudflare KV storage
             kv_list = await storage.list(prefix="user:")
             users_found = []
             
-            # Fetch and parse structural data payloads
             for key_obj in kv_list.keys:
                 key_name = key_obj.name
                 raw_data = await storage.get(key_name)
@@ -54,14 +55,9 @@ async def on_fetch(request, env):
                         "balance": float(parsed.get("balance", 0))
                     })
             
-            # Sort balances highest to lowest
             users_found.sort(key=lambda x: x["balance"], reverse=True)
-            # Limit display pool to top 10 users
             top_ten = users_found[:10]
-            
-            js_headers = get_cors_headers()
-            js_headers.set("Content-Type", "application/json")
-            return Response.new(json.dumps(top_ten), status=200, headers=js_headers)
+            return Response.new(json.dumps(top_ten), status=200, headers=headers)
         
         # --- ACTION: MINE VIA NUMBER GUESS ---
         elif action == "mine_guess":
@@ -87,9 +83,9 @@ async def on_fetch(request, env):
                 mining_reward = 5.0
                 user["balance"] += mining_reward
                 await storage.put(f"user:{username}", json.dumps(user))
-                return Response.new(f"🎉 jackpot! Rolled exactly 77! Gained {mining_reward} Craftcoins! Balance: {user['balance']}", status=200, headers=headers)
+                return Response.new(f" Successful Mine! Rolled exactly 77! Gained {mining_reward} Craftcoins! Balance: {user['balance']}", status=200, headers=headers)
             else:
-                return Response.new(f"❌ Missed! Rolled a {guess}. Only a roll of 77 wins at this 1/100 rate.", status=200, headers=headers)
+                return Response.new(f" Missed! Rolled a {guess}. Only a roll of 77 wins at this 1/100 rate.", status=200, headers=headers)
 
         # --- ACTION: GET BALANCE ---
         elif action == "get_balance":
@@ -120,7 +116,7 @@ async def on_fetch(request, env):
             
             user_data = {
                 "password": hash_password(password),
-                "balance": 0,  # 💰 New accounts start clean at 0 coins
+                "balance": 0,
                 "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             await storage.put(f"user:{username}", json.dumps(user_data))
