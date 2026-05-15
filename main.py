@@ -15,14 +15,15 @@ def get_cors_headers():
 
 async def on_fetch(request, env):
     headers = get_cors_headers()
+    method_str = str(request.method).upper().strip()
 
-    if request.method == "OPTIONS":
+    if method_str == "OPTIONS":
         return Response.new("", status=204, headers=headers)
 
-    if request.method == "GET":
+    if method_str == "GET":
         return Response.new("Craftcoin Backend is Online.", status=200, headers=headers)
 
-    if request.method != "POST":
+    if method_str != "POST":
         return Response.new("Method Not Allowed", status=405, headers=headers)
 
     try:
@@ -34,9 +35,36 @@ async def on_fetch(request, env):
             
         body = json.loads(body_text)
         action = body.get("action")
+
+        # --- ACTION: GET LEADERBOARD ---
+        if action == "get_leaderboard":
+            # List all user keys out of Cloudflare KV storage
+            kv_list = await storage.list(prefix="user:")
+            users_found = []
+            
+            # Fetch and parse structural data payloads
+            for key_obj in kv_list.keys:
+                key_name = key_obj.name
+                raw_data = await storage.get(key_name)
+                if raw_data:
+                    parsed = json.loads(raw_data)
+                    display_name = key_name.replace("user:", "")
+                    users_found.append({
+                        "username": display_name,
+                        "balance": float(parsed.get("balance", 0))
+                    })
+            
+            # Sort balances highest to lowest
+            users_found.sort(key=lambda x: x["balance"], reverse=True)
+            # Limit display pool to top 10 users
+            top_ten = users_found[:10]
+            
+            js_headers = get_cors_headers()
+            js_headers.set("Content-Type", "application/json")
+            return Response.new(json.dumps(top_ten), status=200, headers=js_headers)
         
         # --- ACTION: MINE VIA NUMBER GUESS ---
-        if action == "mine_guess":
+        elif action == "mine_guess":
             username = body.get("username", "").lower().strip()
             pwd = body.get("password", "")
             guess_str = body.get("guess", "0")
@@ -54,14 +82,14 @@ async def on_fetch(request, env):
             except ValueError:
                 return Response.new("Error: Invalid number.", status=400, headers=headers)
 
-            # Rule: If the user's random guess is 35 or under, they win!
-            if 1 <= guess <= 2:
+            # Strict 1/100 Rule: Only the number 77 wins!
+            if guess == 77:
                 mining_reward = 5.0
                 user["balance"] += mining_reward
                 await storage.put(f"user:{username}", json.dumps(user))
-                return Response.new(f"🎉 Winner! Your guess ({guess}) won {mining_reward} Craftcoins! New Balance: {user['balance']}", status=200, headers=headers)
+                return Response.new(f"🎉 jackpot! Rolled exactly 77! Gained {mining_reward} Craftcoins! Balance: {user['balance']}", status=200, headers=headers)
             else:
-                return Response.new(f"❌ Try Again! Your guess ({guess}) missed the winning range (1%).", status=200, headers=headers)
+                return Response.new(f"❌ Missed! Rolled a {guess}. Only a roll of 77 wins at this 1/100 rate.", status=200, headers=headers)
 
         # --- ACTION: GET BALANCE ---
         elif action == "get_balance":
@@ -92,11 +120,11 @@ async def on_fetch(request, env):
             
             user_data = {
                 "password": hash_password(password),
-                "balance": 0,
+                "balance": 0,  # 💰 New accounts start clean at 0 coins
                 "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             await storage.put(f"user:{username}", json.dumps(user_data))
-            return Response.new(f"Success: {username} created!", status=200, headers=headers)
+            return Response.new(f"Success: {username} created with 0 coins!", status=200, headers=headers)
 
         # --- ACTION: TRANSFER ---
         elif action == "transfer":
