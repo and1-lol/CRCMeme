@@ -9,7 +9,6 @@
         #mining-status { color: #00875a; font-weight: bold; margin: 5px 0; }
         #leaderboard-area { background: #f4f5f7; padding: 15px; border-radius: 5px; margin-top: 15px; }
         .leaderboard-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #ddd; }
-        #output { font-weight: bold; padding: 10px; border-radius: 4px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -20,10 +19,10 @@
   <input id="pass" type="password" placeholder="Password"><br>
   <button onclick="doAction('create_account')">Create Account</button>
   <button onclick="doAction('get_balance')">Check Balance</button>
-  <button onclick="startSecureMining()">⛏️ Mine (Secure Server Roll)</button>
+  <button onclick="startSimpleMining()"> Mine (1/1000 Win Rate)</button>
   <div id="mining-status"></div>
   
-  <button onclick="fetchLeaderboard()" style="background-color: #0076ff; color: white; margin-top: 10px;">🏆 View Leaderboard</button>
+  <button onclick="fetchLeaderboard()" style="background-color: #0076ff; color: white; margin-top: 10px;">View Leaderboard</button>
   <div id="leaderboard-area" style="display:none;">
     <h3>Top Balances</h3>
     <div id="leaderboard-list"></div>
@@ -39,11 +38,10 @@
   <script>
     const WORKER_URL = 'https://craftcoinmeme.andrewk-124710.workers.dev'; 
 
+
     async function doAction(action, extraData = {}) {
       const output = document.getElementById('output');
-      output.innerText = "Processing Cloudflare Requests...";
-      output.style.color = "#555";
-      
+      output.innerText = "Processing...";
       try {
         const response = await fetch(WORKER_URL, {
           method: 'POST',
@@ -59,21 +57,13 @@
         });
         const result = await response.text();
         output.innerText = result;
-        
-        // Dynamically style based on the string results
-        if(result.toLowerCase().includes("error") || result.includes("❌")) {
-            output.style.color = "#de350b";
-        } else {
-            output.style.color = "#00875a";
-        }
         return result;
       } catch (err) {
         output.innerText = "Connection Error: " + err.message;
-        output.style.color = "#de350b";
       }
     }
 
-    async function startSecureMining() {
+    async function startSimpleMining() {
       const username = document.getElementById('user').value.toLowerCase().trim();
       const statusDiv = document.getElementById('mining-status');
       if (!username) {
@@ -81,15 +71,17 @@
         return;
       }
 
-      statusDiv.innerText = "⛏️ Mining execution shifted safely onto server runtime...";
-      await doAction('mine_guess');
-      statusDiv.innerText = "Mining transaction processed.";
+      statusDiv.innerText = "Rolling a 1-100 dice...";
+      const luckyGuess = Math.floor(Math.random() * 1000) + 1;
+      statusDiv.innerText = `You rolled: ${luckyGuess}! Submitting to server...`;
+      
+      await doAction('mine_guess', { guess: luckyGuess.toString() });
     }
 
     async function fetchLeaderboard() {
       const listDiv = document.getElementById('leaderboard-list');
       const areaDiv = document.getElementById('leaderboard-area');
-      listDiv.innerHTML = "Querying files via GitHub API...";
+      listDiv.innerHTML = "Loading...";
       areaDiv.style.display = "block";
 
       try {
@@ -102,7 +94,7 @@
         
         listDiv.innerHTML = "";
         if (data.length === 0) {
-          listDiv.innerHTML = "No active records found.";
+          listDiv.innerHTML = "No accounts found.";
           return;
         }
 
@@ -110,11 +102,11 @@
           listDiv.innerHTML += `
             <div class="leaderboard-row">
               <span><strong>#${index + 1}</strong> ${user.username}</span>
-              <span>${user.balance.toFixed(1)} CC</span>
+              <span>${user.balance} CC</span>
             </div>`;
         });
       } catch (err) {
-        listDiv.innerHTML = "Failed to synchronize leaderboard metadata structures.";
+        listDiv.innerHTML = "Failed to load leaderboard data.";
       }
     }
   </script>
