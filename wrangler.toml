@@ -1,12 +1,11 @@
-# wrangler.toml
 name = 'craftcoinmeme'
 main = "main.py"
 compatibility_date = "2024-05-10"
 compatibility_flags = ["python_workers"]
 
-[[kv_namespaces]]
-binding = "CRAFTCOIN_DATA"
-id = "e846c26a67fd405e89a78b288728421a"
+[env.production.vars]
+GITHUB_OWNER = "and1-lol"
+GITHUB_REPO = "CRCMeme"
 
 [observability.logs]
 enabled = true
