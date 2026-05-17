@@ -1,87 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Craftcoin Portal</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-        input, button { margin: 5px 0; padding: 8px; width: 100%; box-sizing: border-box; }
-        hr { margin: 20px 0; }
-        #mining-status { color: #00875a; font-weight: bold; margin: 5px 0; }
-        #leaderboard-area { background: #f4f5f7; padding: 15px; border-radius: 5px; margin-top: 15px; }
-        .leaderboard-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #ddd; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; background: #fafafa; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, button { margin: 6px 0; padding: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
+        button { background-color: #0052cc; color: white; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button:hover { background-color: #0076ff; }
+        .btn-secondary { background-color: #7a869a; }
+        .btn-secondary:hover { background-color: #97a0af; }
+        hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
+        #mining-status { font-weight: bold; margin: 8px 0; min-height: 20px; }
+        #leaderboard-area { background: #f4f5f7; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #dfe1e6; }
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #dfe1e6; }
+        .leaderboard-row:last-child { border-bottom: none; }
+        #output { padding: 12px; border-radius: 4px; background: #eaeaea; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 15px; }
+        .status-success { color: #00875a; }
+        .status-error { color: #de350b; }
+        .status-pending { color: #4c9aff; }
     </style>
 </head>
 <body>
-    <h2>Craftcoin Network (meme)</h2>
-    <h3>Note: Asher is a loser</h3>
-    <h4>Created by ken</h4>
-    
-    <input id="user" placeholder="Username"><br>
-    <input id="pass" type="password" placeholder="Password"><br>
-    
-    <button onclick="doAction('create_account')">Create Account</button>
-    <button onclick="doAction('get_balance')">Check Balance</button>
-    <button onclick="startSimpleMining()">Mine (1/1000 Win Rate)</button>
-    <div id="mining-status"></div>
-    
-    <button onclick="fetchLeaderboard()" style="background-color: #0076ff; color: white; margin-top: 10px;">View Leaderboard</button>
-    
-    <div id="leaderboard-area" style="display:none;">
-        <h3>Top Balances</h3>
-        <div id="leaderboard-list"></div>
+
+    <div class="card">
+        <h2>Craftcoin Network (meme)</h2>
+        <h3>Note: Asher is a loser</h3>
+        <h4>Created by ken</h4>
+        
+        <input id="user" placeholder="Username" autocomplete="username"><br>
+        <input id="pass" type="password" placeholder="Password" autocomplete="current-password"><br>
+        
+        <button onclick="doAction('create_account')">Create Account</button>
+        <button onclick="doAction('get_balance')" class="btn-secondary">Check Balance</button>
+        <button onclick="startSimpleMining()" style="background-color: #00875a;">Mine Craftcoin</button>
+        <div id="mining-status"></div>
+        
+        <button onclick="fetchLeaderboard()" style="background-color: #4c9aff; margin-top: 10px;">View Leaderboard</button>
+        
+        <div id="leaderboard-area" style="display:none;">
+            <h3>Top Balances</h3>
+            <div id="leaderboard-list"></div>
+        </div>
     </div>
     
-    <hr>
-    <input id="to" placeholder="Recipient"><br>
-    <input id="amt" type="number" placeholder="Amount"><br>
-    <button onclick="doAction('transfer')">Transfer</button>
-    
-    <p id="output"></p>
+    <div class="card">
+        <h3>Transfer Funds</h3>
+        <input id="to" placeholder="Recipient Username"><br>
+        <input id="amt" type="number" step="any" min="0.01" placeholder="Amount (e.g. 5.0)"><br>
+        <button onclick="handleTransfer()" style="background-color: #de350b;">Transfer Coins</button>
+    </div>
+
+    <div id="output">System status: Ready</div>
 
     <script>
+        // REPLACE THIS URL with your actual production Cloudflare Worker URL
         const WORKER_URL = 'https://workers.dev';
 
+        function updateOutput(text, className = '') {
+            const out = document.getElementById('output');
+            out.innerText = text;
+            out.className = className;
+        }
+
+        function getAuthCredentials() {
+            const u = document.getElementById('user').value.toLowerCase().trim();
+            const p = document.getElementById('pass').value;
+            return { username: u, password: p };
+        }
+
         async function doAction(action, extraData = {}) {
-            const output = document.getElementById('output');
-            output.innerText = "Processing...";
+            const { username, password } = getAuthCredentials();
+            
+            if (!username || !password) {
+                updateOutput("Error: Username and Password fields are required.", "status-error");
+                return;
+            }
+
+            updateOutput("Processing request...", "status-pending");
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: action,
-                        username: document.getElementById('user').value,
-                        password: document.getElementById('pass').value,
-                        recipient: document.getElementById('to').value,
-                        amount: document.getElementById('amt').value,
+                        username: username,
+                        password: password,
                         ...extraData
                     })
                 });
+                
                 const result = await response.text();
-                output.innerText = result;
-                return result;
+                const statusClass = response.ok ? "status-success" : "status-error";
+                updateOutput(result, statusClass);
+                return response;
             } catch (err) {
-                output.innerText = "Connection Error: " + err.message;
+                updateOutput("Network Error: " + err.message, "status-error");
             }
         }
 
         async function startSimpleMining() {
-            const username = document.getElementById('user').value.toLowerCase().trim();
+            const { username, password } = getAuthCredentials();
             const statusDiv = document.getElementById('mining-status');
-            const output = document.getElementById('output');
             
-            if (!username) {
-                alert("Please enter a username to mine coins!");
+            if (!username || !password) {
+                updateOutput("Error: Enter credentials to mine coins.", "status-error");
                 return;
             }
             
-            statusDiv.style.color = "#00875a"; // Reset to green
-            statusDiv.innerText = "Rolling a 1-1000 dice...";
+            statusDiv.className = "status-pending";
+            statusDiv.innerText = "Requesting server to roll random mining attempt...";
+            updateOutput("Mining transaction pending...", "status-pending");
             
-            const luckyGuess = Math.floor(Math.random() * 1000) + 1;
-            statusDiv.innerText = `You rolled: ${luckyGuess}! Submitting to server...`;
-            
-            output.innerText = "Processing...";
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
@@ -89,50 +121,90 @@
                     body: JSON.stringify({
                         action: 'mine_guess',
                         username: username,
-                        password: document.getElementById('pass').value,
-                        guess: luckyGuess.toString()
+                        password: password
                     })
                 });
                 
                 const result = await response.text();
-                output.innerText = result;
+                updateOutput(result, response.ok ? "status-success" : "status-error");
                 
                 if (response.status === 429) {
-                    statusDiv.style.color = "#de350b"; // Turn text red on throttling
-                    statusDiv.innerText = "Throttled: Too many global requests!";
+                    statusDiv.className = "status-error";
+                    statusDiv.innerText = "Rate limited! Wait a moment and try again.";
+                } else if (result.includes("Jackpot!")) {
+                    statusDiv.className = "status-success";
+                    statusDiv.innerText = "Success! Gained 5.0 Craftcoins!";
+                } else {
+                    statusDiv.className = "status-error";
+                    statusDiv.innerText = "Missed! Better luck next roll.";
                 }
             } catch (err) {
-                output.innerText = "Connection Error: " + err.message;
+                statusDiv.className = "status-error";
+                statusDiv.innerText = "Connection failed.";
+                updateOutput("Network Error: " + err.message, "status-error");
             }
+        }
+
+        async function handleTransfer() {
+            const recipient = document.getElementById('to').value.toLowerCase().trim();
+            const amountInput = document.getElementById('amt').value;
+            const amount = parseFloat(amountInput);
+            
+            if (!recipient) {
+                updateOutput("Error: Recipient username required.", "status-error");
+                return;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                updateOutput("Error: Enter a valid transaction amount greater than 0.", "status-error");
+                return;
+            }
+
+            await doAction('transfer', {
+                recipient: recipient,
+                amount: amount
+            });
         }
 
         async function fetchLeaderboard() {
             const listDiv = document.getElementById('leaderboard-list');
             const areaDiv = document.getElementById('leaderboard-area');
-            listDiv.innerHTML = "Loading...";
+            listDiv.innerHTML = "<em>Loading leaderboard stats...</em>";
             areaDiv.style.display = "block";
+            
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'get_leaderboard' })
                 });
+                
+                if (!response.ok) throw new Error("Server returned an error status.");
+                
                 const data = await response.json();
                 listDiv.innerHTML = "";
-                if (data.length === 0) {
-                    listDiv.innerHTML = "No accounts found.";
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    listDiv.innerHTML = "No accounts found on the leaderboard.";
                     return;
                 }
+                
                 data.forEach((user, index) => {
-                    listDiv.innerHTML += `
-                    <div class="leaderboard-row">
-                        <span><strong>#${index + 1}</strong> ${user.username}</span>
-                        <span>${user.balance} CC</span>
-                    </div>`;
+                    const row = document.createElement('div');
+                    row.className = 'leaderboard-row';
+                    row.innerHTML = `
+                        <span><strong>#${index + 1}</strong> ${escapeHtml(user.username)}</span>
+                        <span>${Number(user.balance).toFixed(2)} CC</span>
+                    `;
+                    listDiv.appendChild(row);
                 });
             } catch (err) {
-                listDiv.innerHTML = "Failed to load leaderboard data.";
+                listDiv.innerHTML = "<span class='status-error'>Failed to load data. Ensure CORS headers match correctly.</span>";
             }
+        }
+
+        // Helper to prevent basic script injections in user text display
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
     </script>
 </body>
