@@ -3,7 +3,7 @@ import datetime
 import hashlib
 import json
 import secrets # Used for secure server-side random generation
-
+ 
 def hash_password(password):
     # Added a simple static salt to mitigate basic rainbow tables
     # For high-security, consider using an external WebCrypto PBKDF2/Bcrypt binding
