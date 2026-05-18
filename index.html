@@ -5,42 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Craftcoin Portal</title>
     <style>
-        /* DVD Screensaver Background Styling */
-        body { 
-            margin: 0; 
-            background-color: black; 
-            font-family: sans-serif; 
-            padding: 20px; 
-            box-sizing: border-box;
-            min-height: 100vh;
-        }
-        
-        #logo {
-            position: fixed; /* Fixed prevents scrolling locks */
-            width: 150px;
-            height: 70px;
-            background-color: #00ff00;
-            color: black;
-            font-family: 'Arial Black', Impact, sans-serif;
-            font-size: 24px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            z-index: 1; /* Sits behind the cards */
-            border-radius: 4px;
-        }
-
-        /* Interactive Portal Layout (Stacked above screensaver) */
-        .portal-container {
-            position: relative;
-            z-index: 10; /* Ensures buttons and inputs remain clickable */
-            max-width: 600px;
-            margin: 40px auto;
-        }
-
-        .card { background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; background: #fafafa; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         input, button { margin: 6px 0; padding: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
         button { background-color: #0052cc; color: white; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s; }
         button:hover { background-color: #0076ff; }
@@ -48,56 +14,49 @@
         .btn-secondary:hover { background-color: #97a0af; }
         hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
         #mining-status { font-weight: bold; margin: 8px 0; min-height: 20px; }
-        #leaderboard-area { background: #f4f5f7; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #dfe1e6; color: #333; }
+        #leaderboard-area { background: #f4f5f7; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #dfe1e6; }
         .leaderboard-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #dfe1e6; }
         .leaderboard-row:last-child { border-bottom: none; }
-        #output { padding: 12px; border-radius: 4px; background: #eaeaea; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 15px; color: #333; }
-        .status-success { color: #00875a; font-weight: bold; }
-        .status-error { color: #de350b; font-weight: bold; }
-        .status-pending { color: #4c9aff; font-weight: bold; }
+        #output { padding: 12px; border-radius: 4px; background: #eaeaea; font-family: monospace; white-space: pre-wrap; word-break: break-all; margin-top: 15px; }
+        .status-success { color: #00875a; }
+        .status-error { color: #de350b; }
+        .status-pending { color: #4c9aff; }
     </style>
 </head>
 <body>
 
-    <!-- DVD Bouncing Target Object -->
-    <div id="logo">CRC</div>
-
-    <!-- Interface Wrapper Layout -->
-    <div class="portal-container">
-        <div class="card">
-            <h2 style="margin-top:0; color:#333;">Craftcoin Network (meme)</h2>
-            <h3 style="color:#de350b;">Note: Asher is a loser</h3>
-            <h4 style="color:#7a869a;">Created by ken</h4>
-            
-            <input id="user" placeholder="Username" autocomplete="username"><br>
-            <input id="pass" type="password" placeholder="Password" autocomplete="current-password"><br>
-            
-            <button onclick="doAction('create_account')">Create Account</button>
-            <button onclick="doAction('get_balance')" class="btn-secondary">Check Balance</button>
-            <button onclick="startSimpleMining()" style="background-color: #00875a;">Mine Craftcoin</button>
-            <div id="mining-status"></div>
-            
-            <button onclick="fetchLeaderboard()" style="background-color: #4c9aff; margin-top: 10px;">View Leaderboard</button>
-            
-            <div id="leaderboard-area" style="display:none;">
-                <h3>Top Balances</h3>
-                <div id="leaderboard-list"></div>
-            </div>
-        </div>
+    <div class="card">
+        <h2>Craftcoin Network (meme)</h2>
+        <h3>Note: Asher is a loser</h3>
+        <h4>Created by ken</h4>
         
-        <div class="card">
-            <h3 style="margin-top:0; color:#333;">Transfer Funds</h3>
-            <input id="to" placeholder="Recipient Username"><br>
-            <input id="amt" type="number" step="any" min="0.01" placeholder="Amount (e.g. 5.0)"><br>
-            <button onclick="handleTransfer()" style="background-color: #de350b;">Transfer Coins</button>
+        <input id="user" placeholder="Username" autocomplete="username"><br>
+        <input id="pass" type="password" placeholder="Password" autocomplete="current-password"><br>
+        
+        <button onclick="doAction('create_account')">Create Account</button>
+        <button onclick="doAction('get_balance')" class="btn-secondary">Check Balance</button>
+        <button onclick="startSimpleMining()" style="background-color: #00875a;">Mine Craftcoin</button>
+        <div id="mining-status"></div>
+        
+        <button onclick="fetchLeaderboard()" style="background-color: #4c9aff; margin-top: 10px;">View Leaderboard</button>
+        
+        <div id="leaderboard-area" style="display:none;">
+            <h3>Top Balances</h3>
+            <div id="leaderboard-list"></div>
         </div>
-
-        <div id="output">System status: Ready</div>
+    </div>
+    
+    <div class="card">
+        <h3>Transfer Funds</h3>
+        <input id="to" placeholder="Recipient Username"><br>
+        <input id="amt" type="number" step="any" min="0.01" placeholder="Amount (e.g. 5.0)"><br>
+        <button onclick="handleTransfer()" style="background-color: #de350b;">Transfer Coins</button>
     </div>
 
+    <div id="output">System status: Ready</div>
+
     <script>
-        // ------------------ PLATFORM API INTEGRATION ------------------
-        // REPLACE THIS URL with your actual live production Render or Worker deployment endpoint
+        // REPLACE THIS URL with your actual production Cloudflare Worker URL
         const WORKER_URL = 'https://craftcoinmeme.andrewk-124710.workers.dev';
 
         function updateOutput(text, className = '') {
@@ -206,7 +165,6 @@
             });
         }
 
-        // ORIGINAL LEADERBOARD SCRIPT FUNCTION (Reverted)
         async function fetchLeaderboard() {
             const listDiv = document.getElementById('leaderboard-list');
             const areaDiv = document.getElementById('leaderboard-area');
@@ -220,61 +178,34 @@
                     body: JSON.stringify({ action: 'get_leaderboard' })
                 });
                 
-                const result = await response.text();
-                listDiv.innerHTML = result;
+                if (!response.ok) throw new Error("Server returned an error status.");
+                
+                const data = await response.json();
+                listDiv.innerHTML = "";
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    listDiv.innerHTML = "No accounts found on the leaderboard.";
+                    return;
+                }
+                
+                data.forEach((user, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'leaderboard-row';
+                    row.innerHTML = `
+                        <span><strong>#${index + 1}</strong> ${escapeHtml(user.username)}</span>
+                        <span>${Number(user.balance).toFixed(2)} CC</span>
+                    `;
+                    listDiv.appendChild(row);
+                });
             } catch (err) {
-                listDiv.innerHTML = "Error loading leaderboard.";
+                listDiv.innerHTML = "<span class='status-error'>Failed to load data. Ensure CORS headers match correctly.</span>";
             }
         }
 
-        // ------------------ DVD SCREENSAVER ANIMATION LOOP ------------------
-        const logo = document.getElementById('logo');
-        
-        let x = Math.random() * (window.innerWidth - 150);
-        let y = Math.random() * (window.innerHeight - 70);
-        
-        let dx = 3;
-        let dy = 3;
-
-        const colors = ['#00ff00', '#ff00ff', '#00ffff', '#ffff00', '#ff0000', '#0000ff', '#ffffff'];
-
-        function changeColor() {
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            logo.style.backgroundColor = randomColor;
+        // Helper to prevent basic script injections in user text display
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
-
-        function update() {
-            x += dx;
-            y += dy;
-
-            const maxX = window.innerWidth - logo.offsetWidth;
-            const maxY = window.innerHeight - logo.offsetHeight;
-
-            if (x >= maxX || x <= 0) {
-                dx = -dx;
-                x = Math.max(0, Math.min(x, maxX));
-                changeColor();
-            }
-
-            if (y >= maxY || y <= 0) {
-                dy = -dy;
-                y = Math.max(0, Math.min(y, maxY));
-                changeColor();
-            }
-
-            logo.style.left = x + 'px';
-            logo.style.top = y + 'px';
-
-            requestAnimationFrame(update);
-        }
-
-        window.addEventListener('resize', () => {
-            x = Math.max(0, Math.min(x, window.innerWidth - logo.offsetWidth));
-            y = Math.max(0, Math.min(y, window.innerHeight - logo.offsetHeight));
-        });
-
-        changeColor();
-        update();
     </script>
 </body>
 </html>
