@@ -9,7 +9,6 @@
         body { 
             margin: 0; 
             background-color: black; 
-            overflow: hidden; 
             font-family: sans-serif; 
             padding: 20px; 
             box-sizing: border-box;
@@ -17,7 +16,7 @@
         }
         
         #logo {
-            position: absolute;
+            position: fixed; /* Fixed prevents scrolling locks */
             width: 150px;
             height: 70px;
             background-color: #00ff00;
@@ -98,8 +97,8 @@
 
     <script>
         // ------------------ PLATFORM API INTEGRATION ------------------
-        // REPLACE THIS URL with your actual live production Render deployment endpoint
-        const WORKER_URL = 'https://craftcoinmeme.andrewk-124710.workers.dev';
+        // REPLACE THIS URL with your actual live production Render or Worker deployment endpoint
+        const WORKER_URL = 'https://workers.dev';
 
         function updateOutput(text, className = '') {
             const out = document.getElementById('output');
@@ -207,6 +206,7 @@
             });
         }
 
+        // ORIGINAL LEADERBOARD SCRIPT FUNCTION (Reverted)
         async function fetchLeaderboard() {
             const listDiv = document.getElementById('leaderboard-list');
             const areaDiv = document.getElementById('leaderboard-area');
@@ -221,16 +221,9 @@
                 });
                 
                 const result = await response.text();
-                if (response.ok) {
-                    listDiv.innerHTML = result;
-                    updateOutput("Leaderboard records loaded successfully.", "status-success");
-                } else {
-                    listDiv.innerHTML = "<span class='status-error'>Failed to load data.</span>";
-                    updateOutput(result, "status-error");
-                }
+                listDiv.innerHTML = result;
             } catch (err) {
-                listDiv.innerHTML = "<span class='status-error'>Connection failed.</span>";
-                updateOutput("Network Error: " + err.message, "status-error");
+                listDiv.innerHTML = "Error loading leaderboard.";
             }
         }
 
@@ -276,8 +269,8 @@
         }
 
         window.addEventListener('resize', () => {
-            x = Math.min(x, window.innerWidth - logo.offsetWidth);
-            y = Math.min(y, window.innerHeight - logo.offsetHeight);
+            x = Math.max(0, Math.min(x, window.innerWidth - logo.offsetWidth));
+            y = Math.max(0, Math.min(y, window.innerHeight - logo.offsetHeight));
         });
 
         changeColor();
