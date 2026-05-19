@@ -91,7 +91,7 @@ async def on_fetch(request, env):
                 return Response.new("Error: Auth failed.", status=403, headers=headers)
             
             # FIX: Server generates the roll number securely. Client can no longer fake it.
-            server_roll = secrets.randbelow(1000) # Generates 0-999
+            server_roll = secrets.randbelow(500) # Generates 0-999
             
             if server_roll == 77:
                 mining_reward = 5.0
