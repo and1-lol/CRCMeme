@@ -267,6 +267,7 @@
             });
         }
 
+        // --- FULLY RESTORED LEADERBOARD LOGIC ---
         async function fetchLeaderboard() {
             const listDiv = document.getElementById('leaderboard-list');
             const areaDiv = document.getElementById('leaderboard-area');
@@ -279,8 +280,30 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'get_leaderboard' })
                 });
+
+                if (!response.ok) {
+                    throw new Error("Server responded with error status: " + response.status);
+                }
+
+                const data = await response.json();
+                listDiv.innerHTML = ""; // Clear out loading text
+
+                if (!data || data.length === 0) {
+                    listDiv.innerHTML = "<em>No active balances found.</em>";
+                    return;
+                }
+
+                // Generates UI row elements for each top user balance returned by the API
+                data.forEach((row) => {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-row';
+                    item.innerHTML = `<span><strong>${row.username}</strong></span><span>${parseFloat(row.balance).toFixed(2)} CRC</span>`;
+                    listDiv.appendChild(item);
+                });
+
             } catch (err) {
-                listDiv.innerHTML = "<span class='status-error'>Failed to load leaderboard.</span>";
+                listDiv.innerHTML = "<span class='status-error'>Failed to load leaderboard data.</span>";
+                updateOutput("Leaderboard Error: " + err.message, "status-error");
             }
         }
     </script>
