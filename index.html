@@ -52,8 +52,17 @@
         }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         input, button { margin: 6px 0; padding: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; }
-        button { background-color: #0052cc; color: white; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button { background-color: #0052cc; color: white; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s, opacity 0.2s; }
         button:hover { background-color: #0076ff; }
+        
+        /* Disabled State Styles for Anti-Spam Mitigation */
+        button:disabled {
+            background-color: #a5adba !important;
+            color: #f4f5f7 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         .btn-secondary { background-color: #7a869a; }
         .btn-secondary:hover { background-color: #97a0af; }
         hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
@@ -84,12 +93,12 @@
             <input id="user" placeholder="Username" autocomplete="username"><br>
             <input id="pass" type="password" placeholder="Password" autocomplete="current-password"><br>
             
-            <button onclick="doAction('create_account')">Create Account</button>
-            <button onclick="doAction('get_balance')" class="btn-secondary">Check Balance</button>
-            <button onclick="startSimpleMining()" style="background-color: #00875a;">Mine Craftcoin</button>
+            <button id="btn-create" onclick="doAction('create_account')">Create Account</button>
+            <button id="btn-balance" onclick="doAction('get_balance')" class="btn-secondary">Check Balance</button>
+            <button id="btn-mine" onclick="startSimpleMining()" style="background-color: #00875a;">Mine Craftcoin</button>
             <div id="mining-status"></div>
             
-            <button onclick="fetchLeaderboard()" style="background-color: #4c9aff; margin-top: 10px;">View Leaderboard</button>
+            <button id="btn-leaderboard" onclick="fetchLeaderboard()" style="background-color: #4c9aff; margin-top: 10px;">View Leaderboard</button>
             
             <div id="leaderboard-area" style="display:none;">
                 <h3>Top Balances</h3>
@@ -101,7 +110,7 @@
             <h3>Transfer Funds</h3>
             <input id="to" placeholder="Recipient Username"><br>
             <input id="amt" type="number" step="any" min="0.01" placeholder="Amount (e.g. 5.0)"><br>
-            <button onclick="handleTransfer()" style="background-color: #de350b;">Transfer Coins</button>
+            <button id="btn-transfer" onclick="handleTransfer()" style="background-color: #de350b;">Transfer Coins</button>
         </div>
 
         <div id="output">System status: Ready</div>
@@ -161,6 +170,16 @@
         // --- Craftcoin Portal Logic ---
         const WORKER_URL = 'https://craftcoinmeme.andrewk-124710.workers.dev';
 
+        // Helper arrays to handle state lockout across inputs/buttons globally
+        const allButtons = ['btn-create', 'btn-balance', 'btn-mine', 'btn-leaderboard', 'btn-transfer'];
+
+        function setGlobalUIState(disabled) {
+            allButtons.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.disabled = disabled;
+            });
+        }
+
         function updateOutput(text, className = '') {
             const out = document.getElementById('output');
             out.innerText = text;
@@ -181,6 +200,7 @@
                 return;
             }
 
+            setGlobalUIState(true); // Freeze interface
             updateOutput("Processing request...", "status-pending");
             try {
                 const response = await fetch(WORKER_URL, {
@@ -200,18 +220,22 @@
                 return response;
             } catch (err) {
                 updateOutput("Network Error: " + err.message, "status-error");
+            } finally {
+                setGlobalUIState(false); // Restore interface
             }
         }
 
         async function startSimpleMining() {
             const { username, password } = getAuthCredentials();
             const statusDiv = document.getElementById('mining-status');
+            const mineBtn = document.getElementById('btn-mine');
             
             if (!username || !password) {
                 updateOutput("Error: Enter credentials to mine coins.", "status-error");
                 return;
             }
             
+            setGlobalUIState(true); // Freeze interface immediately to block duplicate actions
             statusDiv.className = "status-pending";
             statusDiv.innerText = "Requesting server to roll random mining attempt...";
             updateOutput("Mining transaction pending...", "status-pending");
@@ -244,7 +268,28 @@
                 statusDiv.className = "status-error";
                 statusDiv.innerText = "Connection failed.";
                 updateOutput("Network Error: " + err.message, "status-error");
+            } finally {
+                // Re-enable everything EXCEPT the Mine button, which goes through a 3s penalty phase
+                setGlobalUIState(false);
+                startMineButtonCooldown(mineBtn);
             }
+        }
+
+        function startMineButtonCooldown(buttonElement) {
+            let cooldownTime = 3; 
+            buttonElement.disabled = true;
+            buttonElement.innerText = `Cooldown (${cooldownTime}s)...`;
+
+            const interval = setInterval(() => {
+                cooldownTime--;
+                if (cooldownTime <= 0) {
+                    clearInterval(interval);
+                    buttonElement.disabled = false;
+                    buttonElement.innerText = "Mine Craftcoin";
+                } else {
+                    buttonElement.innerText = `Cooldown (${cooldownTime}s)...`;
+                }
+            }, 1000);
         }
 
         async function handleTransfer() {
@@ -267,13 +312,13 @@
             });
         }
 
-        // --- FULLY RESTORED LEADERBOARD LOGIC ---
         async function fetchLeaderboard() {
             const listDiv = document.getElementById('leaderboard-list');
             const areaDiv = document.getElementById('leaderboard-area');
             listDiv.innerHTML = "<em>Loading leaderboard stats...</em>";
             areaDiv.style.display = "block";
             
+            setGlobalUIState(true); // Freeze interface
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
@@ -286,14 +331,13 @@
                 }
 
                 const data = await response.json();
-                listDiv.innerHTML = ""; // Clear out loading text
+                listDiv.innerHTML = ""; 
 
                 if (!data || data.length === 0) {
                     listDiv.innerHTML = "<em>No active balances found.</em>";
                     return;
                 }
 
-                // Generates UI row elements for each top user balance returned by the API
                 data.forEach((row) => {
                     const item = document.createElement('div');
                     item.className = 'leaderboard-row';
@@ -304,6 +348,8 @@
             } catch (err) {
                 listDiv.innerHTML = "<span class='status-error'>Failed to load leaderboard data.</span>";
                 updateOutput("Leaderboard Error: " + err.message, "status-error");
+            } finally {
+                setGlobalUIState(false); // Restore interface
             }
         }
     </script>
